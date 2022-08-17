@@ -62,16 +62,36 @@ public class MyDomParser {
         Connection con = DriverManager.getConnection(url, userName, password);
 
         for(Employee emp : employeeList){
-            String query = "INSERT INTO employees (first_name, last_name, email, gender, password) VALUES (?,?,?,?,?)";
-            PreparedStatement statement = con.prepareStatement(query);
-            statement.setString(1,emp.getFirstName());
-            statement.setString(2,emp.getLastName());
-            statement.setString(3,emp.getEmail());
-            statement.setString(4,emp.getGender());
-            statement.setString(5,emp.getPassword());
-            int affectedRows = statement.executeUpdate();
-            System.out.println("Record Inserted");
-            statement.close();
+            //String query = "INSERT INTO employees (first_name, last_name, email, gender, password) VALUES (?,?,?,?,?)";
+            Class<?> clap = Employee.class;
+            StringBuffer query = new StringBuffer();
+            query.append("INSERT INTO employees (");
+            for(Field field: clap.getDeclaredFields()){
+                field.setAccessible(true);
+                if(field.getName().equals("id")){
+                    continue;
+                }
+                if(field.isAnnotationPresent(NameToName.class)){
+                    query.append(field.getAnnotation(NameToName.class).value()).append(",");
+                }else{
+                    query.append(field.getName()).append(",");
+                }
+            }
+            query.deleteCharAt(query.length()-1);
+            query.append(") VALUES (");
+            for(Field field: clap.getDeclaredFields()){
+                field.setAccessible(true);
+                if(field.getName().equals("id")){
+                    continue;
+                }
+                query.append("'").append(field.get(emp)).append("'").append(",");
+            }
+            query.deleteCharAt(query.length()-1);
+            query.append(");");
+
+
+            PreparedStatement preparedStatement = con.prepareStatement(query.toString());
+            preparedStatement.executeUpdate();
         }
     }
 }
